@@ -14,7 +14,7 @@ from sklearn.exceptions import ConvergenceWarning
 # Auxilary function used to process the config linked to the model.
 # For instance, change the embeddings save path to being next to the model.
 def preprocess_config(sub_dir, datasets, label, folder_name, classifier_name='svm',
-                      epoch=None, verbose=False):
+                      epoch=None, split=None, cv=5, splits_basedir=None, verbose=False):
     """Loads the associated config of the given model and changes what has to be done,
     mainly the datasets, the classifier type and a few other keywords.
     
@@ -57,6 +57,13 @@ def preprocess_config(sub_dir, datasets, label, folder_name, classifier_name='sv
     # add epoch to config if specified
     if epoch is not None:
         cfg.epoch = epoch
+    # add splitting strategy to config
+    cfg.split = split
+    if split=='custom':
+        cfg.splits_basedir=splits_basedir
+    elif split=='random':
+        cfg.cv=cv
+
 
     return cfg
 
@@ -65,8 +72,9 @@ def preprocess_config(sub_dir, datasets, label, folder_name, classifier_name='sv
 # creates embeddings and train classifiers for all models contained in folder
 @ignore_warnings(category=ConvergenceWarning)
 def embeddings_pipeline(dir_path, datasets, labels, short_name=None, classifier_name='svm',
-                        overwrite=False, embeddings=True, use_best_model=False, subsets=['full'],
-                        epoch=None, verbose=False):
+                        overwrite=False, embeddings=True, embeddings_only=False,
+                        use_best_model=False, subsets=['full'],
+                        epochs=None, split='random', cv=5, splits_basedir=None, verbose=False):
     """Pipeline to generate automatically the embeddings and compute the associated AUCs 
     for all the models contained in a given directory. All the AUCs are computed with 
     5-folds cross validation .
@@ -123,43 +131,55 @@ def embeddings_pipeline(dir_path, datasets, labels, short_name=None, classifier_
                     # get the config and correct it to suit
                     # what is needed for classifiers
                     for idx, label in enumerate(labels):
-                        cfg = preprocess_config(sub_dir, datasets, label, folder_name,
-                                                classifier_name=classifier_name, epoch=epoch)
-                        if verbose:
-                            print("CONFIG FILE", type(cfg))
-                            print(json.dumps(omegaconf.OmegaConf.to_container(
-                                cfg, resolve=True), indent=4, sort_keys=True))
-                        # save the modified config next to the real one
-                        with open(sub_dir+'/.hydra/config_classifiers.yaml', 'w') \
-                                as file:
-                            yaml.dump(omegaconf.OmegaConf.to_yaml(cfg), file)
+                        for epoch in epochs:
+                            if epoch is not None:
+                                f_name = folder_name + f'_epoch{epoch}'
+                            else:
+                                f_name = folder_name
+                            cfg = preprocess_config(sub_dir, datasets, label, f_name,
+                                                    classifier_name=classifier_name,
+                                                    epoch=epoch, split=split, cv=cv,
+                                                    splits_basedir=splits_basedir)
+                            if verbose:
+                                print("CONFIG FILE", type(cfg))
+                                print(json.dumps(omegaconf.OmegaConf.to_container(
+                                    cfg, resolve=True), indent=4, sort_keys=True))
+                            # save the modified config next to the real one
+                            with open(sub_dir+'/.hydra/config_classifiers.yaml', 'w') \
+                                    as file:
+                                yaml.dump(omegaconf.OmegaConf.to_yaml(cfg), file)
 
-                        # apply the functions
-                        if embeddings and idx==0:
-                            compute_embeddings(cfg)
-                        # reload config for train_classifiers to work properly
-                        cfg = omegaconf.OmegaConf.load(
-                            sub_dir+'/.hydra/config_classifiers.yaml')
-                        train_classifiers(cfg, subsets=subsets)
-
-                        # compute embeddings for the best model if saved
-                        if (use_best_model and os.path.exists(sub_dir+'/logs/best_model_weights.pt')):
-                            print("\nCOMPUTE AGAIN WITH THE BEST MODEL\n")
                             # apply the functions
-                            cfg = omegaconf.OmegaConf.load(
-                                sub_dir+'/.hydra/config_classifiers.yaml')
-                            cfg.use_best_model = True
                             if embeddings and idx==0:
-                                compute_embeddings(cfg)
+                                valid_path = compute_embeddings(cfg)
+                            elif not embeddings:
+                                valid_path=True # assume that the embeddings exist
                             # reload config for train_classifiers to work properly
                             cfg = omegaconf.OmegaConf.load(
                                 sub_dir+'/.hydra/config_classifiers.yaml')
-                            cfg.use_best_model = True
-                            cfg.training_embeddings = cfg.embeddings_save_path + \
-                                '_best_model'
-                            cfg.embeddings_save_path = \
-                                cfg.embeddings_save_path + '_best_model'
-                            train_classifiers(cfg, subsets=subsets)
+                            if valid_path and not embeddings_only:
+                                train_classifiers(cfg, subsets=subsets)
+                            else:
+                                print('Invalid epoch number, skipped')
+
+                            # compute embeddings for the best model if saved
+                            if (use_best_model and os.path.exists(sub_dir+'/logs/best_model_weights.pt')):
+                                print("\nCOMPUTE AGAIN WITH THE BEST MODEL\n")
+                                # apply the functions
+                                cfg = omegaconf.OmegaConf.load(
+                                    sub_dir+'/.hydra/config_classifiers.yaml')
+                                cfg.use_best_model = True
+                                if embeddings and idx==0:
+                                    _ = compute_embeddings(cfg)
+                                # reload config for train_classifiers to work properly
+                                cfg = omegaconf.OmegaConf.load(
+                                    sub_dir+'/.hydra/config_classifiers.yaml')
+                                cfg.use_best_model = True
+                                cfg.training_embeddings = cfg.embeddings_save_path + \
+                                    '_best_model'
+                                cfg.embeddings_save_path = \
+                                    cfg.embeddings_save_path + '_best_model'
+                                train_classifiers(cfg, subsets=subsets)
 
             else:
                 print(f"\n{sub_dir} not associated to a model. Continue")
@@ -170,26 +190,60 @@ def embeddings_pipeline(dir_path, datasets, labels, short_name=None, classifier_
                                     classifier_name=classifier_name,
                                     overwrite=overwrite,
                                     embeddings=embeddings,
+                                    embeddings_only=embeddings_only,
                                     use_best_model=use_best_model,
                                     subsets=subsets,
-                                    epoch=epoch,
+                                    epochs=epochs,
+                                    split=split,
+                                    cv=cv,
+                                    splits_basedir=splits_basedir,
                                     verbose=verbose)
         else:
             print(f"{sub_dir} is a file. Continue.")
 
 if __name__ == "__main__":
-    embeddings_pipeline("/volatile/jl277509/Runs/02_STS_babies/Program/Output/2024-02-26/",
-        datasets=["local_julien/cingulate_ACCpatterns_1"],
+    embeddings_pipeline("/volatile/jl277509/Runs/02_STS_babies/Program/Output/2024-04-18",
+        datasets=["local_julien/1-5mm/orbital_left_hcp_custom_cv_1-5mm"],
+        labels=['Left_OFC'],
+        short_name='troiani', overwrite=True, embeddings=True, embeddings_only=False, use_best_model=False,
+        subsets=['full'], epochs=[None], split='custom', cv=3,
+        splits_basedir='/neurospin/dico/data/deep_folding/current/datasets/orbital_patterns/Troiani/train_val_split_',
+        verbose=False)           
+    
+""" PCS
+        datasets=["local_julien/1-5mm/cingulate_ACCpatterns_custom_cv_1-5mm"],
         labels=['Right_PCS'],
-        short_name='ACC_1_epoch100', overwrite=True, embeddings=True, use_best_model=False,
-        subsets=['train_val'], epoch=100, verbose=False)
+        short_name='ACC_custom', overwrite=True, embeddings=True, embeddings_only=False, use_best_model=False,
+        subsets=['test'], epochs=[None], split='custom', cv=3,
+        splits_basedir='/neurospin/dico/data/deep_folding/current/datasets/ACCpatterns/ACCpatterns_subjects_train_split_',
+        verbose=False)
+"""
+
+"""OFC
+        datasets=["local_julien/1-5mm/orbital_left_hcp_custom_cv_1-5mm"],
+        labels=['Left_OFC'],
+        short_name='troiani', overwrite=True, embeddings=True, embeddings_only=False, use_best_model=False,
+        subsets=['full'], epochs=range(0,20,10), split='custom', cv=3,
+        splits_basedir='/neurospin/dico/data/deep_folding/current/datasets/orbital_patterns/Troiani/train_val_split_',
+        verbose=False)
+"""
 
 
-#    embeddings_pipeline("/volatile/jl277509/Runs/02_STS_babies/Program/Output/2024-02-25/",
+#datasets=["local_julien/old/STs_dHCP_374_subjects"]
+#split='random', 'custom'
+#epochs=[None], range(0, 250, 10)
+#subset=['full'], ['train_val']
+#labels=['Preterm_28', 'Preterm_32', 'Preterm_37']
+#labels=['Preterm_23-28_vs_fullterm']
+#short_name='UKB_5percent'
+#datasets=["local_julien/1-5mm/STs_babies_UKB_right_5percent_1-5mm"]
+#datasets=["local_julien/1-5mm/STs_babies_dHCP_374_subjects_right_1-5mm"]
+
+#    embeddings_pipeline("/volatile/jl277509/Runs/02_STS_babies/Program/Output/old_best/",
 #        datasets=["local_julien/cingulate_UKB_right_5percent"],
 #        labels=['Age', 'Age_64', 'Sex'],
 #        short_name='UKB_5percent', overwrite=True, embeddings=True, use_best_model=False,
-#        subsets=['train_val'], epoch=None, verbose=False)
+#        subsets=['train_val'], epochs=[None], verbose=False)
 
 
 #datasets=["local_julien/cingulate_UKB_right"]

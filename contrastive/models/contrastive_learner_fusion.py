@@ -51,6 +51,7 @@ from sklearn.metrics import roc_auc_score, r2_score
 from contrastive.augmentations import ToPointnetTensor
 from contrastive.backbones.densenet import DenseNet
 from contrastive.backbones.convnet import ConvNet
+from contrastive.backbones.resnet import resnet18
 #from contrastive.backbones.pointnet import PointNetCls
 from contrastive.backbones.projection_heads import *
 from contrastive.data.utils import change_list_device
@@ -96,9 +97,20 @@ class ContrastiveLearnerFusion(pl.LightningModule):
             for i in range(n_datasets):
                 self.backbones.append(ConvNet(
                     encoder_depth=config.encoder_depth,
+                    block_depth=config.block_depth,
                     num_representation_features=config.backbone_output_size,
                     drop_rate=config.drop_rate,
                     in_shape=config.data[i].input_size))
+        elif config.backbone_name == 'resnet18':
+            for i in range(n_datasets):
+                self.backbones.append(resnet18(
+                    in_channels=1,
+                    num_classes=config.backbone_output_size,
+                    zero_init_residual=config.zero_init_residual,
+                    dropout_rate=config.drop_rate,
+                    out_block=None,
+                    prediction_bias=False,
+                    initial_kernel_size=config.initial_kernel_size))
         # elif config.backbone_name == 'pointnet':
         #     self.backbone = PointNetCls(
         #         k=config.num_representation_features,
@@ -337,10 +349,16 @@ in the config to False to unfreeze them.")
                                            "interval": "epoch"}
 
         return return_dict
-
+    
+    def barlow_twins_loss(self, z_i, z_j):
+        "Loss function for contrastive (BarlowTwins)"
+        loss = BarlowTwinsLoss(lambda_param=self.config.lambda_BT,
+                               correlation=self.config.BT_correlation,
+                               device=self.config.device)
+        return loss.forward(z_i, z_j)
 
     def nt_xen_loss(self, z_i, z_j):
-        """Loss function for contrastive"""
+        """Loss function for contrastive (SimCLR)"""
         loss = NTXenLoss(temperature=self.config.temperature,
                          return_logits=True)
         return loss.forward(z_i, z_j)
@@ -400,8 +418,12 @@ in the config to False to unfreeze them.")
             batch_loss, batch_label_loss, \
                 sim_zij, sim_zii, sim_zjj, correct_pair, weights = \
                 self.generalized_supervised_nt_xen_loss(z_i, z_j, labels)
-        else:
+        elif self.config.contrastive_model=='SimCLR':
             batch_loss, sim_zij, sim_zii, sim_zjj = self.nt_xen_loss(z_i, z_j)
+        elif self.config.contrastive_model=='BarlowTwins':
+            batch_loss = self.barlow_twins_loss(z_i,z_j)
+        #TODO: add error if None of these names
+        #encoder peut être du contrastive supervisé !! gérer ce cas là...
 
         # # Only computes graph on first step
         # if self.global_step == 1:
@@ -415,7 +437,7 @@ in the config to False to unfreeze them.")
             if self.config.with_labels:
                 self.sample_k = change_list_device(view3, 'cpu')
                 self.sample_labels = labels
-            if self.config.mode == "encoder":
+            if self.config.mode == "encoder" and self.config.contrastive_model=='SimCLR':
                 self.sim_zij = sim_zij * self.config.temperature
                 self.sim_zii = sim_zii * self.config.temperature
                 self.sim_zjj = sim_zjj * self.config.temperature
@@ -812,7 +834,7 @@ in the config to False to unfreeze them.")
                     image_TSNE, self.current_epoch)
             
             # Plots scatter matrices
-            if self.plotting_matrices_now():
+            if self.plotting_matrices_now() and (self.config.contrastive_model=='SimCLR'):
                 # Plots zxx and weights histograms
                 if (self.config.mode == "encoder"):
                     self.plot_histograms()
@@ -923,8 +945,11 @@ in the config to False to unfreeze them.")
         elif self.config.proportion_pure_contrastive != 1:
             batch_loss, batch_label_loss, _ = \
                 self.generalized_supervised_nt_xen_loss(z_i, z_j, labels)
-        else:
+        elif self.config.contrastive_model=='SimCLR':
             batch_loss, sim_zij, sim_zii, sim_zjj = self.nt_xen_loss(z_i, z_j)
+        elif self.config.contrastive_model=='BarlowTwins':
+            batch_loss = self.barlow_twins_loss(z_i,z_j)
+        #TODO: add error if None of these names
         
         # values useful for early stoppings
         self.log('val_loss', float(batch_loss), on_epoch=True)
