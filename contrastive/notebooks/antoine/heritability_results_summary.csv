@@ -1,20 +1,22 @@
-Database,Model,Output dim,Region,Side,Covariates,Class,Heritability,Std. error,P-value
-HCP,Barlo Twin,256,,,SEX p = 0.0275798,prob,0.3199857,0.0629547,1e-07
-HCP,Barlo Twin,256,,,SEX p = 0.0075925,prob,0.336879,0.0619554,2.5807871e-08
-HCP,Barlo Twin,256,PCS,Right,Age^2 p = 0.0790279,binary,0.0338875,0.0652609,0.3000365
-HCP,Barlo Twin,256,PCS,Asymmetry,,binary,0.1189072,0.0646099,0.0296857
-HCP,Barlo Twin,256,PCS,Asymmetry,,prob,0.0986592,0.0694987,0.0715496
-HCP,Barlo Twin,256,PCS,Asymmetry,,prob,0.0,,0.5
-HCP,Barlo Twin,256,PCS,Asymmetry,SEX p = 0.0616630,binary,0.0745824,0.0651327,0.1207264
-HCP,Barlo Twin,256,PCS,Asymmetry,,prob,0.0,,0.5
-HCP,Barlo Twin,256,PCS,Asymmetry,SEX p = 0.0151077,prob,0.2844906,0.0701328,2.27e-05
-HCP,Barlo Twin,256,PCS,Asymmetry,,prob,0.1015805,0.065166,0.054482
-HCP,Barlo Twin,256,PCS,Left,,prob,0.2507614,0.0665321,5.74e-05
-HCP,Barlo Twin,256,PCS,Left,,prob,0.2507614,0.0665321,5.74e-05
-HCP,Barlo Twin,256,PCS,Left,,prob,0.2507614,0.0665321,5.74e-05
-HCP,Barlo Twin,256,PCS,Left,,prob,0.2264871,0.0658424,0.0001916
-HCP,Barlo Twin,256,PCS,Left,,prob,0.2556002,0.0664399,4.23e-05
-HCP,Barlo Twin,256,PCS,Left,,binary,0.0933655,0.1780412,0.3004894
-HCP,Barlo Twin,10,PCS,Right,SEX p = 0.0297911,prob,0.1120741,0.0696705,0.0493208
-HCP,Barlo Twin,10,PCS,Left,,prob,0.0291469,0.1919771,0.4397285
-HCP,Barlo Twin,10,PCS,Left,SEX p = 0.0321374,prob,0.0361451,0.1971296,0.4273679
+Label,Database,Model,Output dim,Region,Side,Covariates,Class,Heritability,Std. error,P-value
+Flanker_AgeAdj,HCP,Barlo Twin,256,,,None SEX p = 0.0275798,prob,0.32,0.06,1.0e-07
+Flanker_Unadj,HCP,Barlo Twin,256,,,None SEX p = 0.0075925,prob,0.34,0.06,2.6e-08
+binary_pred,HCP,Barlo Twin,256,PCS,Right,None Age^2 p = 0.0790279,binary,0.03,0.07,3.0e-01
+prob_pred,HCP,Barlo Twin,256,PCS,Right,None SEX p = 0.0644423,prob,0.08,0.07,1.0e-01
+binary_asymmetry_diff,HCP,Barlo Twin,256,PCS,Asymmetry,,binary,0.12,0.06,3.0e-02
+asymmetry_combines_prob_PCS,HCP,Barlo Twin,256,PCS,Asymmetry,,prob,0.1,0.07,7.2e-02
+Left_without_Right_PCS,HCP,Barlo Twin,256,PCS,Asymmetry,,prob,0.0,,5.0e-01
+binary_asymmetry_prob,HCP,Barlo Twin,256,PCS,Asymmetry,None SEX p = 0.0616630,binary,0.07,0.07,1.2e-01
+Two_PCS,HCP,Barlo Twin,256,PCS,Asymmetry,,prob,0.0,,5.0e-01
+Zero_PCS,HCP,Barlo Twin,256,PCS,Asymmetry,None SEX p = 0.0151077,prob,0.28,0.07,2.3e-05
+Right_without_Left_PCS,HCP,Barlo Twin,256,PCS,Asymmetry,,prob,0.1,0.07,5.4e-02
+prob_pred_scaled_on_UKB,HCP,Barlo Twin,256,PCS,Left,,prob,0.25,0.07,5.7e-05
+prob_pred_scaled_on_UKB_brain_vol,HCP,Barlo Twin,256,PCS,Left,,prob,0.25,0.07,5.7e-05
+prob_pred_scaled_on_UKB_brain_vol_sum,HCP,Barlo Twin,256,PCS,Left,,prob,0.25,0.07,5.7e-05
+prob_pred_scaled_on_UKB_2,HCP,Barlo Twin,256,PCS,Left,,prob,0.23,0.07,1.9e-04
+binary_pred_scaled_on_UKB,HCP,Barlo Twin,256,PCS,Left,,binary,0.08,0.18,3.3e-01
+prob_pred_scaled_on_ACCP,HCP,Barlo Twin,256,PCS,Left,,prob,0.26,0.07,4.2e-05
+binary_pred_scaled_on_ACCP,HCP,Barlo Twin,256,PCS,Left,,binary,0.09,0.18,3.0e-01
+prob,HCP,Barlo Twin,10,PCS,Right,None SEX p = 0.0297911,prob,0.11,0.07,4.9e-02
+prob,HCP,Barlo Twin,10,PCS,Left,,prob,0.03,0.19,4.4e-01
+prob2,HCP,Barlo Twin,10,PCS,Left,None SEX p = 0.0321374,prob,0.04,0.2,4.3e-01
