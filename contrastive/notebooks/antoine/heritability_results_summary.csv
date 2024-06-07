@@ -26,6 +26,11 @@ prob,HCP,Barlo Twin,10,PCS,Right,None SEX p = 0.0297911,prob,0.11,0.07,4.9e-02
 prob,HCP,Barlo Twin,10,PCS,Left,,prob,0.03,0.19,4.4e-01
 prob2,HCP,Barlo Twin,10,PCS,Left,None SEX p = 0.0321374,prob,0.04,0.2,4.3e-01
 OFC_3,HCP,Barlo Twin,256,,Left,None SEX p = 0.0008928,prob,0.11,0.19,2.9e-01
+3dPC,HCP,Barlo Twin,256,,Left,None Age^2 p = 0.0279798,prob,0.18,0.17,1.5e-01
 OFC_0,HCP,Barlo Twin,256,,Left,None SEX p = 0.0025470,prob,0.05,0.18,3.9e-01
+4thPC,HCP,Barlo Twin,256,,Left,None Age^2 p = 0.0133047,prob,0.24,0.07,7.1e-05
 OFC_2,HCP,Barlo Twin,256,,Left,None SEX p = 0.0141935,prob,0.08,0.18,3.2e-01
+2dPC,HCP,Barlo Twin,256,,Left,None SEX p = 0.0983290,prob,0.18,0.06,2.2e-03
+5thPC,HCP,Barlo Twin,256,,Left,,prob,0.06,0.07,1.7e-01
+1stPC,HCP,Barlo Twin,256,,Left,None SEX p = 0.0542398,prob,0.0,,5.0e-01
 OFC_1,HCP,Barlo Twin,256,,Left,None SEX p = 0.0001112,prob,0.18,0.06,1.5e-03
