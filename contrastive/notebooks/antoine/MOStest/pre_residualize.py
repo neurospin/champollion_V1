@@ -2,6 +2,7 @@ import pandas as pd
 import statsmodels.api as sm
 import sys
 from scipy.stats import norm
+import argparse
 
 def get_covars_expression(covars_list):
     """
@@ -36,10 +37,10 @@ def process_files(latent_file_path, covar_file_path):
     Parameters:
     -----------
     latent_file_path : str
-        Path to the latent file in CSV format (tab-separated) containing latent 
+        Path to the latent file (tab-separated) containing latent 
         variables.
     covar_file_path : str
-        Path to the covariate file in CSV format (tab-separated) containing 
+        Path to the covariate file (tab-separated) containing 
         covariates.
 
     Returns:
@@ -51,12 +52,22 @@ def process_files(latent_file_path, covar_file_path):
     # Load data
     latent_df = pd.read_csv(latent_file_path, sep='\t')
     covar_df = pd.read_csv(covar_file_path, sep='\t')
+    
+    # Identify columns that are not of type int or float
+    non_numeric_columns = covar_df.select_dtypes(exclude=['int', 'float']).columns
+
+    # Convert boolean columns to 1 and 0
+    for col in non_numeric_columns:
+        if covar_df[col].dtype == bool:
+            covar_df[col] = covar_df[col].astype(int)
 
     # Merge the dataframes on 'IID'
-    merged_df = pd.merge(latent_df, covar_df, on='IID', how='inner')
-
-    # Define the list of covariates
-    covars_list = covar_df.drop(['IID', 'FID'], axis=1).columns
+    if '#FID' in latent_df.columns:
+        merged_df = pd.merge(latent_df.drop('#FID', axis=1), covar_df, on='IID', how='inner')
+        covars_list = covar_df.drop(['IID', '#FID'], axis=1).columns
+    elif 'FID' in latent_df.columns:
+        merged_df = pd.merge(latent_df.drop('FID', axis=1), covar_df, on='IID', how='inner')
+        covars_list = covar_df.drop(['IID', 'FID'], axis=1).columns
 
     print()
     list_cov = get_covars_expression(covars_list)
@@ -72,11 +83,8 @@ def process_files(latent_file_path, covar_file_path):
     if 'I(Age*Age*Sex)' in list_cov and 'Age' in merged_df.columns and 'Sex' in merged_df.columns:
         merged_df['I(Age*Age*Sex)'] = (merged_df['Age'] ** 2) * merged_df['Sex']
 
-    # Define the output file path
-    output_file_path = latent_file_path.replace('.csv', '_pre_residualized.csv')
-
-    # Process each phenotype column, which are the different dimensions of the latent
-    phenotype_cols = [col for col in latent_df.columns if col not in ['IID']]
+    # Process each phenotype column
+    phenotype_cols = [col for col in latent_df.columns if col not in ['IID','#FID','FID']]
 
     print()
     print("Pre-residualize with sm.OLS by keeping only the residuals for each dimension for each covariate.")
@@ -101,16 +109,22 @@ def process_files(latent_file_path, covar_file_path):
         qnorm_values = norm.ppf(ecdf_values - 0.5 / len(merged_df[dim_i]))
         merged_df[dim_i] = qnorm_values
 
+    # Define the output file path
+    output_file_path = latent_file_path.replace('.phe', '_pre_residualized.txt')
     print()
     print(f"Save the pre-residualized file at {output_file_path} with a sep='\\t'.")
     # Save the pre_residualized file
-    merged_df[['FID','IID']+phenotype_cols].to_csv(output_file_path, sep='\t', index=False)
+    if '#FID' in latent_df.columns:
+        merged_df[['#FID','IID']+phenotype_cols].to_csv(output_file_path, sep='\t', index=False)
+    elif 'FID' in latent_df.columns:
+        merged_df[['FID','IID']+phenotype_cols].to_csv(output_file_path, sep='\t', index=False)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python pre_residualize.py <latent_file_path> <covar_file_path>")
-        sys.exit(1)
+    # Set up argument parsing
+    parser = argparse.ArgumentParser(description="Pre-residualize phenotype data using covariates and latent variables.")
+    parser.add_argument('latent_file_path', type=str, help='Path to the latent file (tab-separated) containing latent variables.')
+    parser.add_argument('covar_file_path', type=str, help='Path to the covariate file (tab-separated) containing covariates.')
 
-    latent_file_path = sys.argv[1]
-    covar_file_path = sys.argv[2]
-    process_files(latent_file_path, covar_file_path)
+    args = parser.parse_args()
+
+    process_files(args.latent_file_path, args.covar_file_path)

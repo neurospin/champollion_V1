@@ -5,7 +5,7 @@ def process_file(input_filename):
     """
     Description:
     -------------
-    The `process_csv` script processes CSV files to ensure they conform to a 
+    The `ensure_IID` script processes CSV files to ensure they conform to a 
     specific format required for further analysis. It checks if the required 
     column 'IID' is present, renames and formats it if necessary, and saves 
     the processed file with a new name. 
@@ -14,7 +14,7 @@ def process_file(input_filename):
     ------
     - `input_file_path` (str): The path to the input CSV file that needs processing. 
     This file should have a column named 'ID' or 'IID' with integer values or strings 
-    representing integers.
+    such as 'sub-1111111'.
 
     Output:
     -------
@@ -25,7 +25,7 @@ def process_file(input_filename):
     Example:
     ---------
     ```bash
-    python3 process_csv.py /path/to/input_file.csv
+    python3 ensure_IID.py /path/to/input_file.csv
     ```
     """
     # Define file paths
@@ -52,7 +52,7 @@ def process_file(input_filename):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python process_csv.py <filename>")
+        print("Usage: python ensure_IID.py <filename>")
         sys.exit(1)
     
     input_filename = sys.argv[1]
