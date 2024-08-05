@@ -49,7 +49,7 @@ if __name__ == '__main__':
             mostest_output = pd.read_csv(sumstats_path, sep='\t')
             print(f"{file} loaded")
             # is it a correct way to calculate beta and the SE ?
-            mostest_output[['beta', 'SE']] = mostest_output.apply(compute_effect_size, axis=1, args=(n_subjects,))
+            # mostest_output[['beta', 'SE']] = mostest_output.apply(compute_effect_size, axis=1, args=(n_subjects,))
             sumstats_all_chr.append(mostest_output)
 
     sumstats_all_chr_df = pd.concat(sumstats_all_chr)
@@ -64,7 +64,7 @@ if __name__ == '__main__':
             mostest_output = pd.read_csv(sumstats_path, sep='\t')
             print(f"{file} loaded")
             # is it a correct way to calculate beta and the SE ?
-            mostest_output[['beta', 'SE']] = mostest_output.apply(compute_effect_size, axis=1, args=(n_subjects,))
+            # mostest_output[['beta', 'SE']] = mostest_output.apply(compute_effect_size, axis=1, args=(n_subjects,))
             sumstats_all_chr.append(mostest_output)
 
     sumstats_all_chr_df = pd.concat(sumstats_all_chr)
