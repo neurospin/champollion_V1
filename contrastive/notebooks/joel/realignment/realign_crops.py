@@ -227,7 +227,7 @@ def realign_one_subject(skel_f):
     # Crop volume to mask_dilated size
     bbmin, bbmax = compute_bbox_mask(mask_dilated)
     after_cropped = aims.VolumeView(after, bbmin, bbmax - bbmin)
-    aims.write(after, f"/tmp/after_cropped{sub_name}.nii.gz")
+    aims.write(after_cropped, f"/tmp/after_cropped{sub_name}.nii.gz")
     
     return (sub_name, after_cropped, before_path, after_path)
 
