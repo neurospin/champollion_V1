@@ -1,60 +1,68 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import glob
+import re
 
-# Parameters
-nb_zscores_tables = 10
-nb_z_per_summary = 1500
+# Path to your data files
+#base_path = '/ccc/workflash/cont003/n4h00001/n4h00001/24irene_AD_brainMOSTEST/results/FIP_left/14-56-46_3/42433/epoch*/mostest_imputed_autosomes_decim_maf-0.05.most_orig.sumstats'
 
-# Colors for each Z-score set
-colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'purple', 'orange', 'pink']
+base_path = '/ccc/workflash/cont003/n4h00001/n4h00001/24irene_AD_brainMOSTEST/results/FIP_left/14-56-46_3/42433_PCA20/epoch*/mostest_imputed_autosomes_decim_maf-0.05.most_orig.sumstats'
 
-# Initialize the plot
-plt.figure(figsize=(14, 10))  # Increased height for better spacing
+#base_path = '/ccc/workflash/cont003/n4h00001/n4h00001/24irene_AD_brainMOSTEST/results/FIP_right/20-16-33_3/42433/epoch*/mostest_imputed_autosomes_decim_maf-0.05.most_orig.sumstats'
 
-# Loop over each dataset, overwrite df, and plot
+#base_path = '/ccc/workflash/cont003/n4h00001/n4h00001/24irene_AD_brainMOSTEST/results/FIP_right/20-16-33_3/42433_PCA20/epoch*/mostest_imputed_autosomes_decim_maf-0.05.most_orig.sumstats'
 
-for i in range(nb_zscores_tables):
-    # Generate the dataset
-    df = pd.DataFrame(np.random.randn(nb_z_per_summary, 5), columns=['CHR', 'SNP', 'PVAL', 'N', 'FREQ'])
+#base_path = '/ccc/workflash/cont003/n4h00001/n4h00001/24irene_AD_brainMOSTEST/results/FIP_right/20-16-33_0/42433/epoch*/mostest_imputed_autosomes_decim_maf-0.05.most_orig.sumstats'
+
+path_before_epoch, after_epoch = base_path.split('epoch*')
+
+file_paths = glob.glob(base_path)
+file_paths = sorted(file_paths, key=lambda x: int(re.search(r'epoch(\d+)', x).group(1)))  
+
+# Choose a colormap and generate a color gradient
+colormap = plt.colormaps['Blues']  # Access the colormap directly
+colors = colormap(np.linspace(0.3, 1.0, len(file_paths)))  # Gradient from light to dark
+
+plt.figure(figsize=(21, 10.5))
+
+# Loop through each file and plot data
+for i, file in enumerate(file_paths):
+    print("Working with file", file)
+    df = pd.read_csv(file, sep='\t')
     
-    # Random chromosome assignment (1 to 22)
-    df['CHR'] = np.random.randint(1, 23, size=nb_z_per_summary)
-    # Random SNP positions (within 1 Mbp per chromosome)
-    df['POS'] = np.random.randint(1, 1_000_000, size=nb_z_per_summary)
-    # Random P-values (0 to 1)
-    df['PVAL'] = np.abs(np.random.rand(nb_z_per_summary))
+    if i == 0:
+        # Calculate cumulative position for x-axis alignment only once
+        df.sort_values(by=['CHR', 'BP'], inplace=True)
+        chrom_offsets = df.groupby('CHR')['BP'].max().cumsum().shift(fill_value=0)
+
+    # Filter significant SNPs
+    df = df[df["PVAL"] < 1e-5]
     df['neg_log_pval'] = -np.log10(df['PVAL'])
-    
-    # Sort by chromosome and position
-    df.sort_values(by=['CHR', 'POS'], inplace=True)
-    
-    # Calculate cumulative position for x-axis alignment
-    chrom_offsets = df.groupby('CHR')['POS'].max().cumsum().shift(fill_value=0)
-    df['x_val'] = df.apply(lambda row: row['POS'] + chrom_offsets.loc[row['CHR']], axis=1)
-    
-    # Apply vertical offset based on the dataset index
-    df['neg_log_pval_shifted'] = df['neg_log_pval']
-    
-    # Plot the SNPs for this dataset
-    plt.scatter(df['x_val'], df['neg_log_pval_shifted'], 
-                c=colors[i % len(colors)], s=2, label=f'Z_score{i}', alpha=0.7)
+    df['x_val'] = df.apply(lambda row: row['BP'] + chrom_offsets.loc[row['CHR']], axis=1)
+
+    # Plot the SNPs with progressively darker colors
+    plt.scatter(df['x_val'], df['neg_log_pval'], 
+                color=colors[i], s=4,  # Use color from gradient
+                label=file.replace(path_before_epoch, '').replace(after_epoch, ''), alpha=0.7)
+
+# Add a horizontal significance threshold line
+plt.axhline(y=7.3, color='r', linestyle='--')
 
 # Customize plot labels and title
-plt.xlabel('Genomic Position')
+plt.xlabel('Chromosome')
 plt.ylabel('-log10(p-value)')
-plt.title('Manhattan Plot of Multiple tests')
+plt.title('Manhattan Plot of Multiple Epochs')
 
 # Add chromosome labels at their midpoints
-chromosome_ticks = [chrom_offsets[chrom] + df[df['CHR'] == chrom]['POS'].max() / 2 for chrom in sorted(df['CHR'].unique())]
+chromosome_ticks = [chrom_offsets[chrom] + df[df['CHR'] == chrom]['BP'].max() / 2 for chrom in sorted(df['CHR'].unique())]
 chromosome_labels = [f"Chr {chrom}" for chrom in sorted(df['CHR'].unique())]
-
 plt.xticks(chromosome_ticks, chromosome_labels, rotation=45)
 
 # Add legend
-plt.legend(loc='upper right', bbox_to_anchor=(1.1, 1))
+plt.legend(loc='upper right', bbox_to_anchor=(1.08, 1))
 plt.tight_layout()
+plt.savefig(path_before_epoch + '/Multi_manhattan_plot.eps', format='eps')
 plt.show()
-
 
 
