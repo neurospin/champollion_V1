@@ -334,7 +334,7 @@ def buckets_average_with_alignment(subject_id_list, dataset_name_list,
 
     side_long = "left" if side == 'L' else 'right'
     
-    spam_file = f'/neurospin/dico/data/deep_folding/current/mask/2mm/regions/L/{region}_{side_long}.nii.gz'
+    spam_file = f'/neurospin/dico/data/deep_folding/current/mask/2mm/regions/{side}/{region}_{side_long}.nii.gz'
     spam_vol = aims.read(spam_file, dtype="Volume_FLOAT")
     
     before_all = copy_volume_info(spam_vol, 'S16')
@@ -352,7 +352,7 @@ def buckets_average_with_alignment(subject_id_list, dataset_name_list,
     for subject_id, dataset_name in zip(subject_id_list, dataset_name_list):
         dataset = 'UkBioBank' if dataset_name.lower(
         ) in ['ukb', 'ukbiobank', 'projected_ukb'] else 'UkBioBank40'
-        skel_path = f"/neurospin/dico/data/deep_folding/current/datasets/{dataset}/skeletons/2mm/L"
+        skel_path = f"/neurospin/dico/data/deep_folding/current/datasets/{dataset}/skeletons/2mm/{side}"
 
         file_path = f"{skel_path}/{side}resampled_skeleton_{subject_id}.nii.gz"
         if os.path.isfile(file_path):
