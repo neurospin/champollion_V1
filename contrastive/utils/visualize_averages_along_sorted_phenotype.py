@@ -62,6 +62,8 @@ from sulci.registration.spam import spam_register
 
 from soma.aimsalgo import MorphoGreyLevel_S16
 
+from p_tqdm import p_map
+
 # Global static variables
 _AIMS_BINARY_ONE = 32767
 _dilation = 5
@@ -150,7 +152,7 @@ def buckets_average(subject_id_list, dataset_name_list, region, side):
 
     # Normalize the accumulated volume
     sum_vol.np[:] /= len(subject_id_list)
-    print(sum_vol.shape)
+    print(f"{sum_vol.shape}: max = {sum_vol.np.max()}")
     return sum_vol
 
 
@@ -224,14 +226,14 @@ def do_masking_dilation(spam_vol, skel_vol,
     # mask_result.np[:] = (arr_filter > 0.001).astype(int)
 
     # Threshold mask
-    print("before threshold", np.unique(mask_result.np, return_counts=True))
+    # print("before threshold", np.unique(mask_result.np, return_counts=True))
     mask_result.np[mask_result.np <= threshold] = 0
     mask_result.np[mask_result.np > threshold] = 1
 
     # Dilates mask
     mask_result.np[:] = dilate(mask_result, dilation).np
-    print("after threshold and dilation",
-          np.unique(mask_result.np, return_counts=True))
+    # print("after threshold and dilation",
+    #       np.unique(mask_result.np, return_counts=True))
 
     # Do the actual masking
     skel_vol.np[mask_result.np <= 0] = 0
@@ -254,7 +256,7 @@ def realign(spam_vol: aims.Volume_FLOAT, skel_vol: aims.Volume_S16,
     skel_vol_before, mask_dilated = do_masking_dilation(
         spam_vol, skel_vol, _dilation, _threshold, True)
     aims.write(skel_vol_before, f"/tmp/skel_before{sub_name}.nii.gz")
-    print(np.unique(spam_vol.np))
+    # print(np.unique(spam_vol.np))
     mask_dilated.np[:] = (mask_dilated.np > 0).astype(np.int16)
 
     if do_edge_smoothing:
@@ -276,7 +278,7 @@ def realign(spam_vol: aims.Volume_FLOAT, skel_vol: aims.Volume_S16,
                            in_log=False,
                            calibrate_distrib=30)
     aims.write(out_tr, f'/tmp/transform{sub_name}.trm')
-    print(out_tr.np)
+    # print(out_tr.np)
 
     # Masks with final dilation and threshold
     skel_vol, spam_vol = do_masking_dilation(
@@ -323,7 +325,7 @@ def realign_one_subject(skel_f, spam_vol):
 
 
 def buckets_average_with_alignment(subject_id_list, dataset_name_list,
-                                   region, side):
+                                   region, side, nb_processors):
     """Computes the average bucket volumes for a list of subjects."""
     dic_vol = {}
     dim = 0
@@ -348,45 +350,36 @@ def buckets_average_with_alignment(subject_id_list, dataset_name_list,
     dim = sum_vol.shape
     sum_vol.fill(0)  
 
-    # Process each subject
-    for subject_id, dataset_name in zip(subject_id_list, dataset_name_list):
-        dataset = 'UkBioBank' if dataset_name.lower(
-        ) in ['ukb', 'ukbiobank', 'projected_ukb'] else 'UkBioBank40'
-        skel_path = f"/neurospin/dico/data/deep_folding/current/datasets/{dataset}/skeletons/2mm/{side}"
-
+    dataset_name = dataset_name_list[0]
+    dataset = 'UkBioBank' if dataset_name.lower(
+                ) in ['ukb', 'ukbiobank', 'projected_ukb'] else 'UkBioBank40'
+    skel_path = f"/neurospin/dico/data/deep_folding/current/datasets/{dataset}/skeletons/2mm/{side}"
+        
+    def realign_one(subject_id):
         file_path = f"{skel_path}/{side}resampled_skeleton_{subject_id}.nii.gz"
         if os.path.isfile(file_path):
-            skel_vol = aims.read(file_path)
-            # Realign
-            b, r, s, mask_dilated = realign(spam_vol, skel_vol, True, subject_id)            
-            
-            # Gets volume before and after
-            before = copy_volume_info(spam_vol, 'S16')
-            before += b
-            after = copy_volume_info(spam_vol, 'S16')
-            after += r
-            spam_after = copy_volume_info(spam_vol, 'S16')
-            spam_after += s  
-            
-            # Crop volume to mask_dilated size
-            bbmin, bbmax = compute_bbox_mask(mask_dilated)
-            after_cropped = aims.VolumeView(after, bbmin, bbmax - bbmin)
-            
-            if skel_vol.np.shape != dim:
-                raise ValueError(
-                    f"{subject_id_list[0]} and {spam_file} must have the same dimensions")
-
-            subject_l.append(subject_id)
-            list_after_cropped.append(after_cropped)
-            # Adds volume to concatenate volume
-            before_all += before
-            after_all += after
+            all_ = realign_one_subject(file_path, spam_vol)
+            return all_
         else:
-            print(f'FileNotFound: {file_path}')
+            print(f'FileNotFound: {file_path}')        
+        
+    # Process each subject
+    if nb_processors > 1:
+        all_l = p_map(realign_one, subject_id_list, num_cpus=nb_processors)
+    else:
+        for subject_id in subject_id_list:
+            all_l.append(realign_one(subject_id))
 
+    for sub_name, after_cropped, before, after in all_l:
+        subject_l.append(sub_name)
+        list_after_cropped.append(after_cropped)
+        # Adds volume to concatenate volume
+        before_all += before
+        after_all += after
+    
     # Normalize the accumulated volume
-    sum_vol.np[:] = after_all.np / len(subject_id_list)
-    print(sum_vol.shape)
+    sum_vol.np[:] = after_all.np.astype(float) / len(subject_id_list)
+    print(f"{sum_vol.shape}, max = {sum_vol.np.max()}")
     return sum_vol
 
 
@@ -408,8 +401,11 @@ def parse_args(argv):
         "-i", "--side", type=str, default="L",
         choices=["L", "R"], help="Side of the brain (left or right).")
     parser.add_argument(
-        "-a", "--alignment", action="store_true",
+        "-a", "--alignment", action="store_false",
         help="if present, performs alignment")
+    parser.add_argument(
+        "-b", "--nb_processors",  type=int, default=46,
+        help="performs parallelization if > 1; gives number of processors.")
     parser.add_argument(
         "-d", "--dataset", type=str, default="UkBioBank40",
         help="Dataset on which are taken the crops: UkBioBank, UkBioBank40,...")
@@ -461,6 +457,7 @@ def visualize_averages_along_sorted_phenotype(params):
     region = params['region']
     side = params['side']
     alignment = params['alignment']
+    nb_processors = params['nb_processors']
 
     ####################################
     # Initializations
@@ -513,7 +510,7 @@ def visualize_averages_along_sorted_phenotype(params):
     for i in list_pack:
         if alignment:
             sum_vol = buckets_average_with_alignment(_dic_packages[i], list_database,
-                                                     region, side)
+                                                     region, side, nb_processors)
         else:
             sum_vol = buckets_average(_dic_packages[i], list_database,
                                       region, side)
