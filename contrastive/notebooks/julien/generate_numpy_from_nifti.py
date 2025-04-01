@@ -11,26 +11,31 @@ side='R'
 region='F.I.P.'
 """
 
-dataset='hcp'
-side='R'
-region='F.I.P.'
+side='L'
+datasets = ['UkBioBank40', 'hcp']
+sulcus_list = ['S.C.-sylv.', 'S.Or.']
 
-root_dir = f'/neurospin/dico/data/deep_folding/current/datasets/{dataset}/crops/2mm/{region}/mask'
-ccdistmap_dir = os.path.join(root_dir, f'{side}ccdistmaps')
+for region in sulcus_list:
+    for dataset in datasets:
 
-subjects = pd.read_csv(os.path.join(root_dir, f'{side}skeleton_subject.csv'))['Subject'].tolist()
+        root_dir = f'/neurospin/dico/data/deep_folding/current/datasets/{dataset}/crops/2mm/{region}/mask'
+        ccdistmap_dir = os.path.join(root_dir, f'{side}ccdistmaps')
 
-list_arr = []
+        subjects = pd.read_csv(os.path.join(root_dir, f'{side}skeleton_subject.csv'))['Subject'].tolist()
 
-for subject in tqdm(subjects):
-    ccdistmap = aims.read(os.path.join(ccdistmap_dir, f'{subject}_cropped_skeleton.nii.gz'))
-    ccdistmap = ccdistmap.np
-    list_arr.append(ccdistmap)
+        list_arr = []
 
-arr_skel = np.stack(list_arr)
+        for subject in tqdm(subjects):
+            ccdistmap = aims.read(os.path.join(ccdistmap_dir, f'{subject}_cropped_skeleton.nii.gz'))
+            ccdistmap = ccdistmap.np
+            list_arr.append(ccdistmap)
 
-print(f'array shape : {arr_skel.shape}')
+        arr_skel = np.stack(list_arr)
 
-np.save(os.path.join(root_dir, 'Rccdistmaps.npy'), arr_skel)
+        print(f'array shape : {arr_skel.shape}')
+
+        np.save(os.path.join(root_dir, 'Rccdistmaps.npy'), arr_skel)
+
+        del arr_skel
                           
 

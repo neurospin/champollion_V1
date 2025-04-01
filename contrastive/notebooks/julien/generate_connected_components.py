@@ -8,19 +8,9 @@ import multiprocessing as mp
 from functools import partial
 
 n_cpus= 46
-side = 'R'
-dataset = 'hcp'
-sulcus = 'F.I.P.'
-
-root_dir = f'/neurospin/dico/data/deep_folding/current/datasets/{dataset}/crops/2mm/{sulcus}/mask/'
-save_dir = os.path.join(root_dir, f'{side}ccdistmaps')
-root_dir = os.path.join(root_dir, f'{side}crops')
-subjects_list = os.listdir(root_dir)
-subjects_list = [elem for elem in subjects_list if elem[-1]!='f'] # remove minf files from list
-
-if not os.path.isdir(save_dir):
-    os.mkdir(save_dir)
-
+side = 'L'
+datasets = ['UkBioBank40', 'hcp']
+sulcus_list = ['S.C.-sylv.', 'S.Or.']
 
 ## UTILS
 
@@ -116,4 +106,18 @@ def process_list(root_dir, save_dir, list_sub_dirs, n_cpus):
     return results
 
 
-process_list(root_dir, save_dir, subjects_list, n_cpus)
+for sulcus in sulcus_list:
+    for dataset in datasets:
+
+        print(f'Treating {dataset} {sulcus} {side}')
+
+        root_dir = f'/neurospin/dico/data/deep_folding/current/datasets/{dataset}/crops/2mm/{sulcus}/mask/'
+        save_dir = os.path.join(root_dir, f'{side}ccdistmaps')
+        root_dir = os.path.join(root_dir, f'{side}crops')
+        subjects_list = os.listdir(root_dir)
+        subjects_list = [elem for elem in subjects_list if elem[-1]!='f'] # remove minf files from list
+
+        if not os.path.isdir(save_dir):
+            os.mkdir(save_dir)
+
+        process_list(root_dir, save_dir, subjects_list, n_cpus)
