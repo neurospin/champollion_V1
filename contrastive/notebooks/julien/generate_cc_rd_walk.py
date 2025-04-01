@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import ndimage
 import os
+import pandas as pd
 import networkx as nx
 from collections import defaultdict
 import random
@@ -15,7 +16,7 @@ structure = np.ones((3,3,3))
 
 n_cpus= 46
 side = 'L'
-datasets = ['hcp', 'UkBioBank40']
+datasets = ['UkBioBank40']
 sulcus_list = ['S.Or.']
 
 ## UTILS
@@ -97,7 +98,7 @@ def process_element(subject_dir, root_dir, save_dir, walk_length=1000, alpha=0.5
 
     aims.write(vol, os.path.join(save_dir, subject_dir))
     
-    return vol.np
+    return vol.np, subject_dir
 
 
 def process_list(root_dir, save_dir, walk_length, alpha, structure, list_sub_dirs, n_cpus):
@@ -127,7 +128,9 @@ for sulcus in sulcus_list:
             os.mkdir(save_dir)
 
         results = process_list(crops_dir, save_dir, walk_length=walk_length, alpha=alpha, structure=structure, list_sub_dirs=subjects_list, n_cpus=n_cpus)
-
+        subjects = [results[k][1].split('_cropped_skeleton.nii.gz')[0] for k in range(len(results))]
         print(f'Build Numpy array')
-        arr = np.stack(results)
-        np.save(os.path.join(root_dir, f'{side}ccrdwalks.npy'), arr)
+        results = np.stack([results[k][0] for k in range(len(results))])
+        np.save(os.path.join(root_dir, f'{side}ccrdwalks.npy'), results)
+        subjects = pd.DataFrame(data=subjects, columns=['Subject'])
+        subjects.to_csv(os.path.join(root_dir, f'{side}ccrdwalks_subjects.csv'), index=False)
