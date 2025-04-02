@@ -15,9 +15,9 @@ alpha = 0.5
 structure = np.ones((3,3,3))
 
 n_cpus= 46
-side = 'L'
-datasets = ['UkBioBank40']
-sulcus_list = ['S.Or.']
+side = 'R'
+datasets = ['UkBioBank40', 'hcp']
+sulcus_list = ['F.I.P.', 'LARGE_CINGULATE.']
 
 ## UTILS
 
@@ -131,6 +131,11 @@ for sulcus in sulcus_list:
         subjects = [results[k][1].split('_cropped_skeleton.nii.gz')[0] for k in range(len(results))]
         print(f'Build Numpy array')
         results = np.stack([results[k][0] for k in range(len(results))])
-        np.save(os.path.join(root_dir, f'{side}ccrdwalks.npy'), results)
         subjects = pd.DataFrame(data=subjects, columns=['Subject'])
+        ## sort subjects by name
+        subjects = subjects.sort_values(by='Subject')
+        idxs = subjects.index.tolist()
+        # reorder crops
+        results = results[idxs]
+        np.save(os.path.join(root_dir, f'{side}ccrdwalks.npy'), results)
         subjects.to_csv(os.path.join(root_dir, f'{side}ccrdwalks_subjects.csv'), index=False)
