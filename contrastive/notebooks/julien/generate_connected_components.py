@@ -8,9 +8,9 @@ import multiprocessing as mp
 from functools import partial
 
 n_cpus= 46
-side = 'L'
+side = 'R'
 datasets = ['UkBioBank40', 'hcp']
-sulcus_list = ['S.C.-sylv.', 'S.Or.']
+sulcus_list = ['LARGE_CINGULATE.']
 
 ## UTILS
 

@@ -11,9 +11,9 @@ side='R'
 region='F.I.P.'
 """
 
-side='L'
+side='R'
 datasets = ['UkBioBank40', 'hcp']
-sulcus_list = ['S.C.-sylv.', 'S.Or.']
+sulcus_list = ['LARGE_CINGULATE.']
 
 for region in sulcus_list:
     for dataset in datasets:
@@ -34,7 +34,7 @@ for region in sulcus_list:
 
         print(f'array shape : {arr_skel.shape}')
 
-        np.save(os.path.join(root_dir, 'Rccdistmaps.npy'), arr_skel)
+        np.save(os.path.join(root_dir, f'{side}ccdistmaps.npy'), arr_skel)
 
         del arr_skel
                           
