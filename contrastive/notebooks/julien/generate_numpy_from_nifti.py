@@ -11,9 +11,9 @@ side='R'
 region='F.I.P.'
 """
 
-dataset='hcp'
+dataset='ACCpatterns'
 side='R'
-region='F.I.P.'
+region='LARGE_CINGULATE.'
 
 root_dir = f'/neurospin/dico/data/deep_folding/current/datasets/{dataset}/crops/2mm/{region}/mask'
 ccdistmap_dir = os.path.join(root_dir, f'{side}ccdistmaps')

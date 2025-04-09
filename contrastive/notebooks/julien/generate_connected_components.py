@@ -9,8 +9,8 @@ from functools import partial
 
 n_cpus= 46
 side = 'R'
-dataset = 'hcp'
-sulcus = 'F.I.P.'
+dataset = 'ACCpatterns'
+sulcus = 'LARGE_CINGULATE.'
 
 root_dir = f'/neurospin/dico/data/deep_folding/current/datasets/{dataset}/crops/2mm/{sulcus}/mask/'
 save_dir = os.path.join(root_dir, f'{side}ccdistmaps')

@@ -15,9 +15,9 @@ alpha = 0.5
 structure = np.ones((3,3,3))
 
 n_cpus= 46
-side = 'L'
-datasets = ['UkBioBank40', 'hcp']
-sulcus_list = ['S.C.-sylv.']
+side = 'R'
+datasets = ['ACCpatterns']
+sulcus_list = ['LARGE_CINGULATE.']
 
 ## UTILS
 
