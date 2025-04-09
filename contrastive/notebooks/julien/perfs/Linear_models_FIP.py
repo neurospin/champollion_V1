@@ -12,11 +12,11 @@ save_dir = '~/Documents/LinearModels/'
 
 ## orbital
 
-crops_dir = '/neurospin/dico/data/deep_folding/current/datasets/hcp/crops/2mm/ORBITAL/mask'
-label='Left_OFC'
-side = 'L'
-labels = pd.read_csv('/neurospin/dico/data/deep_folding/current/datasets/hcp/hcp_OFC_labels_from_0.csv', usecols=['Subject', label])
-splits_dir = '/neurospin/dico/data/deep_folding/current/datasets/orbital_patterns/Troiani/Left'
+crops_dir = '/neurospin/dico/data/deep_folding/current/datasets/hcp/crops/2mm/F.I.P./mask'
+label='Right_FIP'
+side = 'R'
+labels = pd.read_csv('/neurospin/dico/data/deep_folding/current/datasets/hcp/FIP/FIP_labels.csv', usecols=['Subject', label])
+splits_dir = '/neurospin/dico/data/deep_folding/current/datasets/hcp/FIP/Right' ## NB : CHANGE FOR LEFT
 
 ##
 
@@ -67,8 +67,8 @@ print("Best parameters:", grid_search.best_params_)
 best_model = grid_search.best_estimator_
 
 y_test_pred = best_model.predict_proba(test_skels)
-score = roc_auc_score(Y_test, y_test_pred, multi_class='ovr', average='weighted') ## WON'T WORK WITH SINGLE CLASS
+score = roc_auc_score(Y_test, y_test_pred[:, 1])
 print(score)
 
-with open(os.path.join(save_dir,"SOr.txt"),"w") as file:
+with open(os.path.join(save_dir,"FIP.txt"),"w") as file:
       file.write(f'Score : {score}, Best_parameters : {grid_search.best_params_}')

@@ -12,18 +12,21 @@ save_dir = '~/Documents/LinearModels/'
 
 ## orbital
 
-crops_dir = '/neurospin/dico/data/deep_folding/current/datasets/hcp/crops/2mm/ORBITAL/mask'
-label='Left_OFC'
-side = 'L'
-labels = pd.read_csv('/neurospin/dico/data/deep_folding/current/datasets/hcp/hcp_OFC_labels_from_0.csv', usecols=['Subject', label])
-splits_dir = '/neurospin/dico/data/deep_folding/current/datasets/orbital_patterns/Troiani/Left'
+crops_dir = '/neurospin/dico/data/deep_folding/current/datasets/hcp/crops/2mm/F.I.P./mask'
+label='Right_FIP'
+side = 'R'
+labels = pd.read_csv('/neurospin/dico/data/deep_folding/current/datasets/hcp/FIP/FIP_labels.csv', usecols=['Subject', label])
+splits_dir = '/neurospin/dico/data/deep_folding/current/datasets/hcp/FIP/Right' ## NB : CHANGE FOR LEFT
 
 ##
 
 skels = np.load(os.path.join(crops_dir, f'{side}skeleton.npy'))
+skels[skels > 0] = 1
+topo = np.load(os.path.join(crops_dir, f'{side}topologies.npy'))
+skels = np.concatenate((skels, topo), axis=-1)
+
 skel_subs = pd.read_csv(os.path.join(crops_dir, f'{side}skeleton_subject.csv'))
 skels = skels.reshape(skels.shape[0], np.prod(skels.shape[1:]))
-skels = skels.astype(bool)
 
 train_subs = pd.read_csv(os.path.join(splits_dir, 'train_split.csv'), names=['Subject'])
 val_subs = pd.read_csv(os.path.join(splits_dir, 'val_split.csv'), names=['Subject'])
@@ -67,8 +70,8 @@ print("Best parameters:", grid_search.best_params_)
 best_model = grid_search.best_estimator_
 
 y_test_pred = best_model.predict_proba(test_skels)
-score = roc_auc_score(Y_test, y_test_pred, multi_class='ovr', average='weighted') ## WON'T WORK WITH SINGLE CLASS
+score = roc_auc_score(Y_test, y_test_pred[:, 1])
 print(score)
 
-with open(os.path.join(save_dir,"SOr.txt"),"w") as file:
+with open(os.path.join(save_dir,"FIP_with_topo.txt"),"w") as file:
       file.write(f'Score : {score}, Best_parameters : {grid_search.best_params_}')
