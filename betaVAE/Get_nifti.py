@@ -8,7 +8,7 @@ import pandas as pd
 
 #print(data.shape)
 
-out_path = '/neurospin/dico/cmendoza/Runs/01_betavae_sulci_crops/Output/2025-05-28/23-11-30/'
+out_path = "/neurospin/dico/cmendoza/Runs/01_betavae_sulci_crops/Output/2025-06-05/17-32-49/"
 
 for vol in ['input','output']:
     vol_npy = np.load(out_path+vol+'.npy')[0,0,:,:,:].astype(np.float32)
